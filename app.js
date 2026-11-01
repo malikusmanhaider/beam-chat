@@ -351,7 +351,10 @@ function connectToRelay(roomCode) {
             // P2P Sync: Request previous chat history from any active peers in this room
             setTimeout(() => {
               requestPeerHistorySync();
-            }, 350);
+            }, 300);
+            setTimeout(() => {
+              requestPeerHistorySync();
+            }, 1800);
           } else {
             console.error("Subscription error", err);
           }
@@ -465,8 +468,8 @@ async function handleIncomingWirePayload(rawBuffer) {
       return;
     }
 
-    // 1. P2P History Sync Request from a newcomer
-    if (payload.type === "SYNC_REQUEST") {
+    // 1. P2P History Sync Request or Presence from a newcomer
+    if (payload.type === "SYNC_REQUEST" || payload.type === "PRESENCE") {
       handlePeerSyncRequest(payload);
       return;
     }
@@ -613,7 +616,7 @@ async function handlePeerSyncRequest(req) {
       originalId: msg.id,
       senderId: msg.senderId,
       senderNick: msg.senderNick,
-      targetId: req.senderId, // Specifically targeted to newcomer
+      targetId: req.senderId || "all", // Specifically targeted to newcomer or all
       type: "SYNC_ITEM",
       msgType: msg.type,
       timestamp: msg.timestamp,
@@ -625,13 +628,13 @@ async function handlePeerSyncRequest(req) {
     };
 
     await transmitPayload(item);
-    await delay(30);
+    await delay(25);
   }
 }
 
 function handlePeerSyncItem(item) {
-  // If targetId is specified and doesn't match our clientId, skip
-  if (item.targetId && item.targetId !== state.clientId) return;
+  // If targetId is specified and doesn't match our clientId and not 'all', skip
+  if (item.targetId && item.targetId !== state.clientId && item.targetId !== "all") return;
 
   const targetId = item.originalId || item.id;
 
