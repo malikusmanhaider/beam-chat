@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Beam - Ephemeral Zero-Database P2P Communicator</title>
+  <meta name="description" content="Ultra-private, RAM-only, end-to-end encrypted room communicator. Zero persistent databases, 1-click media download, instant peer sharing.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%232563EB%22><circle cx=%2212%22 cy=%2212%22 r=%223%22/><path d=%22M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0M10.59 10.59a2 2 0 0 1 2.82 0%22 fill=%22none%22 stroke=%22%232563EB%22 stroke-width=%222%22 stroke-linecap=%22round%22/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="app-container">
+
+    <!-- ======================================================================
+         VIEW 1: ENTRY / LOBBY SCREEN
+         ====================================================================== -->
+    <main id="view-entry">
+      <div class="entry-card">
+        <header class="entry-header">
+          <div class="theme-toggle-corner">
+            <button id="theme-toggle-btn" class="icon-button" title="Toggle Light / Dark Theme" aria-label="Toggle theme">
+              <span id="theme-icon">🌙</span>
+            </button>
+          </div>
+
+          <div class="brand-badge">
+            <!-- Wifi Tethering / Waves Icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+              <line x1="12" y1="20" x2="12.01" y2="20" stroke-width="3"></line>
+            </svg>
+          </div>
+
+          <h1 class="app-title">BEAM</h1>
+          <p class="app-subtitle">Fast, Ephemeral & Zero-Database P2P Communicator</p>
+
+          <div class="security-pills-row">
+            <span class="pill-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              Zero Database
+            </span>
+            <span class="pill-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              RAM Memory Only
+            </span>
+            <span class="pill-badge info">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              AES-256-GCM
+            </span>
+          </div>
+        </header>
+
+        <form id="entry-form" onsubmit="event.preventDefault(); joinRoom();">
+          <div class="form-group">
+            <label class="form-label" for="room-input">
+              <span>Room Code</span>
+              <span class="optional">(Required)</span>
+            </label>
+            <div class="input-wrapper">
+              <div class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+              </div>
+              <input type="text" id="room-input" class="form-input" placeholder="e.g. tiger786, delta99" required autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pin-input">
+              <span>Encryption PIN</span>
+              <span class="optional">(Optional Passphrase)</span>
+            </label>
+            <div class="input-wrapper">
+              <div class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </div>
+              <input type="password" id="pin-input" class="form-input" placeholder="Locks room with dual-pass SHA-256" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="nick-input">
+              <span>Nickname</span>
+              <span class="optional">(Leave blank for random)</span>
+            </label>
+            <div class="input-wrapper">
+              <div class="input-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </div>
+              <input type="text" id="nick-input" class="form-input" placeholder="e.g. Alex, Sam, Ghost" maxlength="24">
+            </div>
+          </div>
+
+          <button type="submit" id="btn-connect" class="btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+            CONNECT TO BEAM
+          </button>
+        </form>
+
+        <p class="entry-footer-hint">
+          Peer-to-peer memory bridge. When you close or leave, all unexported chat data disappears completely.
+        </p>
+      </div>
+    </main>
+
+
+    <!-- ======================================================================
+         VIEW 2: ACTIVE LIVE CHAT SCREEN
+         ====================================================================== -->
+    <section id="view-chat" style="display: none;">
+      <!-- Top Bar -->
+      <header class="chat-topbar">
+        <div class="topbar-left">
+          <div id="connection-status-dot" class="status-dot-pulse" title="Connected to ephemeral relay"></div>
+          <div class="topbar-info">
+            <div class="topbar-room">
+              <span id="header-room-name">tiger786</span>
+              <span id="header-pin-badge" class="lock-badge" title="PIN Protected Room" style="display: none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </span>
+            </div>
+            <span id="header-status-label" class="topbar-subtitle">RAM-only encrypted channel</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <!-- 1-Click Copy Room Link -->
+          <button id="btn-copy-link" class="btn-action-pill" title="Copy Room Invite Link" onclick="copyRoomLink()">
+            <svg id="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span id="copy-btn-text">Copy Link</span>
+          </button>
+
+          <!-- Password-protected Chat Export -->
+          <button id="btn-save-chat" class="btn-action-pill" title="Export Chat with Master Password" onclick="promptSaveChat()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            <span>Save</span>
+          </button>
+
+          <!-- Sound Alert Toggle -->
+          <button id="btn-sound-toggle" class="icon-button" title="Mute/Unmute Sound Alerts" onclick="toggleSoundAlerts()">
+            <span id="sound-icon">🔔</span>
+          </button>
+
+          <!-- Theme Switcher -->
+          <button id="chat-theme-btn" class="icon-button" title="Toggle Theme" onclick="toggleTheme()">
+            <span class="chat-theme-icon">🌙</span>
+          </button>
+
+          <!-- Leave / Wipe Screen -->
+          <button id="btn-leave-room" class="btn-action-pill danger" title="Wipe RAM & Leave Room" onclick="leaveRoom()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Leave</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Security Info Ribbon -->
+      <div class="security-ribbon">
+        <div class="security-ribbon-text">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <span>End-to-End Encrypted: Only peers in room '<span id="ribbon-room-name"></span>' can read this stream.</span>
+        </div>
+        <span id="ribbon-my-nick" style="font-weight: 600;">You: Sam</span>
+      </div>
+
+      <!-- Messages Area -->
+      <div id="messages-container" class="messages-container">
+        <!-- Messages dynamically inserted here -->
+      </div>
+
+      <!-- Input Bar -->
+      <footer class="chat-input-bar">
+        <!-- Hidden file inputs -->
+        <input type="file" id="image-file-input" accept="image/*" multiple style="display: none;" onchange="handleImageSelected(this)">
+        <input type="file" id="generic-file-input" accept="*/*" style="display: none;" onchange="handleGenericFileSelected(this)">
+
+        <div class="chat-input-wrapper">
+          <!-- Multi-Image Picker -->
+          <button type="button" class="btn-input-action" title="Send Images (Multi-select)" onclick="document.getElementById('image-file-input').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+          </button>
+
+          <!-- Special Document / Any File Picker (< 4MB) -->
+          <button type="button" class="btn-input-action" title="Send Document / File (< 4MB)" onclick="document.getElementById('generic-file-input').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          </button>
+
+          <!-- Text input -->
+          <textarea id="chat-text-input" class="chat-textarea" rows="1" placeholder="Type encrypted message..." onkeydown="handleInputKeydown(event)"></textarea>
+
+          <!-- Voice Note Button -->
+          <button type="button" id="btn-mic" class="btn-input-action" title="Record Voice Note" onclick="startVoiceRecording()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          </button>
+        </div>
+
+        <!-- Send Button -->
+        <button type="button" id="btn-send-message" class="btn-send" title="Send Message" onclick="sendTextMessage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+
+        <!-- Live Audio Recording Overlay -->
+        <div id="recording-overlay" class="recording-bar-overlay" style="display: none;">
+          <div class="recording-indicator">
+            <span class="rec-dot"></span>
+            <span id="rec-time" class="rec-timer">00:00</span>
+            <div class="rec-wave-sim">
+              <span class="rec-wave-bar"></span>
+              <span class="rec-wave-bar"></span>
+              <span class="rec-wave-bar"></span>
+              <span class="rec-wave-bar"></span>
+              <span class="rec-wave-bar"></span>
+            </div>
+          </div>
+          <div class="recording-actions">
+            <button type="button" class="btn-rec-cancel" onclick="cancelVoiceRecording()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              Cancel
+            </button>
+            <button type="button" class="btn-rec-send" title="Send Voice Note" onclick="stopAndSendVoiceRecording()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>
+          </div>
+        </div>
+      </footer>
+    </section>
+
+  </div><!-- /#app-container -->
+
+
+  <!-- ======================================================================
+       MODAL: EXPORT CHAT MASTER PASSWORD PROMPT
+       ====================================================================== -->
+  <div id="modal-export-password" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 22px; height: 22px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          Export Encrypted Backup
+        </h3>
+        <button class="icon-button" onclick="closeExportModal()">✕</button>
+      </div>
+      <p class="modal-desc">
+        Chat history and media will be bundled into a password-protected ZIP archive containing an interactive visual <code>chat.html</code> report and original media files.
+      </p>
+      <div class="form-group">
+        <label class="form-label" for="export-password-input">Enter Master Security Password:</label>
+        <div class="input-wrapper">
+          <input type="password" id="export-password-input" class="form-input" placeholder="Enter master password..." autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeExportModal()">Cancel</button>
+        <button type="button" class="btn-primary" style="width: auto; padding: 0 20px;" onclick="confirmExportChat()">Export ZIP</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ======================================================================
+       LIGHTBOX: FULLSCREEN IMAGE VIEWER
+       ====================================================================== -->
+  <div id="image-lightbox" class="lightbox-backdrop" style="display: none;" onclick="closeLightbox(event)">
+    <div class="lightbox-topbar">
+      <button class="icon-button" id="lightbox-download-btn" title="Download Image" style="background: rgba(255,255,255,0.2); color: #FFF; border: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width: 18px; height: 18px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      </button>
+      <button class="icon-button" title="Close" style="background: rgba(255,255,255,0.2); color: #FFF; border: none;" onclick="closeLightboxDirect()">✕</button>
+    </div>
+    <div class="lightbox-img-wrapper">
+      <img id="lightbox-img" class="lightbox-img" src="" alt="Fullscreen preview">
+    </div>
+  </div>
+
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Vendor Scripts (Local with fallback to CDN) -->
+  <script src="lib/mqtt.min.js"></script>
+  <script>
+    if (typeof mqtt === 'undefined') {
+      document.write('<script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"><\/script>');
+    }
+  </script>
+
+  <script src="lib/jszip.min.js"></script>
+  <script>
+    if (typeof JSZip === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"><\/script>');
+    }
+  </script>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
