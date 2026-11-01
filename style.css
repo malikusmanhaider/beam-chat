@@ -671,6 +671,8 @@ body {
   font-size: 14px;
   line-height: 1.45;
   white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
 }
 
 .msg-meta-row {
@@ -1711,8 +1713,10 @@ body {
   fill: currentColor;
 }
 
-/* Delete Message for Me Button */
-.msg-delete-btn {
+/* Message Action Buttons (Copy & Delete) */
+.msg-action-btn,
+.msg-delete-btn,
+.msg-copy-btn {
   opacity: 0;
   background: rgba(0, 0, 0, 0.25);
   color: white;
@@ -1724,22 +1728,34 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  margin-left: 6px;
-  transition: opacity 0.2s ease, background 0.2s ease;
+  margin-left: 3px;
+  transition: opacity 0.2s ease, background 0.2s ease, transform 0.1s ease;
 }
 
-.msg-row:hover .msg-delete-btn {
+.msg-row:hover .msg-action-btn,
+.msg-row:hover .msg-delete-btn,
+.msg-row:hover .msg-copy-btn {
   opacity: 0.85;
+}
+
+.msg-copy-btn:hover {
+  opacity: 1 !important;
+  background: var(--primary);
+  transform: scale(1.1);
 }
 
 .msg-delete-btn:hover {
   opacity: 1 !important;
   background: var(--danger);
+  transform: scale(1.1);
 }
 
 @media (max-width: 768px) {
-  .msg-delete-btn {
-    opacity: 0.6;
+  .msg-action-btn,
+  .msg-delete-btn,
+  .msg-copy-btn {
+    opacity: 0.75;
   }
 }
+
 

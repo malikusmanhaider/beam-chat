@@ -1183,7 +1183,11 @@ function renderMessageToDom(msg) {
     metaRow.innerHTML = `
       <span>${formatTime(msg.timestamp)}</span>
       ${msg.isOutgoing ? `<span class="msg-tick-container" id="tick-${msg.id}">${renderTickHtml(msg.status || "SENT")}</span>` : ''}
-      <button class="msg-delete-btn" title="Delete for me" onclick="deleteMessageForMe('${msg.id}')">
+      ${msg.type === "TEXT" && msg.text ? `
+      <button class="msg-action-btn msg-copy-btn" title="Copy text" onclick="copyMessageText('${msg.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 10px; height: 10px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      </button>` : ''}
+      <button class="msg-action-btn msg-delete-btn" title="Delete for me" onclick="deleteMessageForMe('${msg.id}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 10px; height: 10px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
       </button>
     `;
@@ -1523,6 +1527,51 @@ function deleteMessageForMe(msgId) {
   persistCurrentSession();
   updateSavedChannelIfActive();
   showToast("Message deleted for you", "info");
+}
+
+// ============================================================================
+// COPY MESSAGE TEXT
+// ============================================================================
+
+function copyMessageText(msgId) {
+  const msg = state.messages.find(m => m.id === msgId);
+  if (!msg || !msg.text) {
+    showToast("No text to copy", "info");
+    return;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg.text).then(() => {
+      showToast("Text copied to clipboard!", "success");
+    }).catch(() => {
+      fallbackCopyText(msg.text);
+    });
+  } else {
+    fallbackCopyText(msg.text);
+  }
+}
+
+function fallbackCopyText(text) {
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    textarea.style.left = "-9999px";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    if (successful) {
+      showToast("Text copied to clipboard!", "success");
+    } else {
+      showToast("Failed to copy text", "error");
+    }
+  } catch (err) {
+    showToast("Copy error: " + (err.message || err), "error");
+  }
 }
 
 function scrollToBottom() {
