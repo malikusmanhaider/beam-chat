@@ -869,17 +869,10 @@ async function handleImageSelected(input) {
   input.value = "";
 }
 
-// Generic File (< 4MB, e.g. .key, .pdf, .zip, .txt, .mp4)
+// Generic File (e.g. .key, .pdf, .zip, .txt, .mp4, videos, documents)
 async function handleGenericFileSelected(input) {
   const file = input.files[0];
   if (!file) return;
-
-  const maxBytes = 4 * 1024 * 1024; // 4 MB limit
-  if (file.size > maxBytes) {
-    showToast(`File is too large (${formatFileSize(file.size)}). Max limit is 4 MB.`, "error");
-    input.value = "";
-    return;
-  }
 
   try {
     const arrayBuffer = await file.arrayBuffer();
