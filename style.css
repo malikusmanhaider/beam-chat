@@ -1576,3 +1576,170 @@ body {
     font-size: 10px;
   }
 }
+
+/* Saved Channels Section on Entry Screen */
+.saved-channels-card {
+  margin-top: 18px;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  text-align: left;
+}
+
+.saved-channels-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.saved-channels-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.saved-channels-badge {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.saved-channels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.saved-channel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+}
+
+.saved-channel-item:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.saved-channel-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.saved-channel-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.saved-channel-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.saved-channel-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-open-channel {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.btn-open-channel:hover {
+  opacity: 0.9;
+}
+
+.btn-del-channel {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-del-channel:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+}
+
+/* Bookmark Room Button in Topbar */
+#btn-bookmark-room.active {
+  background: #f59e0b;
+  color: #ffffff;
+  border-color: #d97706;
+}
+
+#btn-bookmark-room.active svg {
+  fill: currentColor;
+}
+
+/* Delete Message for Me Button */
+.msg-delete-btn {
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.25);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 6px;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.msg-row:hover .msg-delete-btn {
+  opacity: 0.85;
+}
+
+.msg-delete-btn:hover {
+  opacity: 1 !important;
+  background: var(--danger);
+}
+
+@media (max-width: 768px) {
+  .msg-delete-btn {
+    opacity: 0.6;
+  }
+}
+

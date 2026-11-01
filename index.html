@@ -105,6 +105,18 @@
           </button>
         </form>
 
+        <!-- Saved Channels / Secret Vaults -->
+        <div id="saved-channels-card" class="saved-channels-card" style="display: none;">
+          <div class="saved-channels-header">
+            <div class="saved-channels-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="width: 16px; height: 16px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+              <span>Saved Channels</span>
+            </div>
+            <span id="saved-channels-badge" class="saved-channels-badge">0</span>
+          </div>
+          <div id="saved-channels-list" class="saved-channels-list"></div>
+        </div>
+
         <p class="entry-footer-hint">
           Peer-to-peer memory bridge. When you close or leave, all unexported chat data disappears completely.
         </p>
@@ -136,6 +148,12 @@
           <button id="btn-copy-link" class="btn-action-pill" title="Copy Room Invite Link" onclick="copyRoomLink()">
             <svg id="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <span id="copy-btn-text">Copy Link</span>
+          </button>
+
+          <!-- Bookmark / Save Channel to Device Storage -->
+          <button id="btn-bookmark-room" class="btn-action-pill" title="Save Channel & Chat to Device" onclick="toggleSaveCurrentChannel()">
+            <svg id="bookmark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+            <span id="bookmark-label">Save Channel</span>
           </button>
 
           <!-- Password-protected Chat Export -->

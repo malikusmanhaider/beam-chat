@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTextareaAutoResize();
   initWebAudioUnlock();
   initTabFocusListener();
+  initSavedChannelsUi();
 });
 
 function initTheme() {
@@ -295,12 +296,16 @@ async function joinRoom() {
     document.getElementById("view-entry").style.display = "none";
     document.getElementById("view-chat").style.display = "flex";
 
-    // 2. RESTORE PREVIOUS CHAT MESSAGES IF REFRESHED (Fixes refresh data loss!)
+    // 2. RESTORE PREVIOUS CHAT MESSAGES IF REFRESHED OR SAVED CHANNEL
     const hasRestored = restoreSessionMessages(room);
     if (!hasRestored) {
-      state.messages = [];
-      addSystemMessage(`Connected to Beam channel [${room}]. Messages exist strictly in live RAM.`);
+      const hasSaved = restoreSavedChannelMessages(room);
+      if (!hasSaved) {
+        state.messages = [];
+        addSystemMessage(`Connected to Beam channel [${room}]. Messages exist strictly in live RAM.`);
+      }
     }
+    updateBookmarkButtonUi();
 
     // Connect to Ephemeral MQTT Relay
     connectToRelay(room);
@@ -1118,6 +1123,7 @@ function addMessageToUi(msg) {
   state.messages.push(msg);
   renderMessageToDom(msg);
   persistCurrentSession();
+  updateSavedChannelIfActive();
   scrollToBottom();
 }
 
@@ -1174,6 +1180,9 @@ function renderMessageToDom(msg) {
     metaRow.innerHTML = `
       <span>${formatTime(msg.timestamp)}</span>
       ${msg.isOutgoing ? `<span class="msg-tick-container" id="tick-${msg.id}">${renderTickHtml(msg.status || "SENT")}</span>` : ''}
+      <button class="msg-delete-btn" title="Delete for me" onclick="deleteMessageForMe('${msg.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 10px; height: 10px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      </button>
     `;
     bubble.appendChild(metaRow);
 
@@ -1263,6 +1272,254 @@ function restoreSessionMessages(roomCode) {
     console.error("Failed to restore session messages", e);
     return false;
   }
+}
+
+// ============================================================================
+// SAVED CHANNELS & SECRET VAULTS (Persistent Bookmark with Encrypted History)
+// ============================================================================
+
+function getSavedChannels() {
+  try {
+    const raw = localStorage.getItem("beam_saved_channels_meta");
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function isChannelSaved(roomCode) {
+  if (!roomCode) return false;
+  const list = getSavedChannels();
+  return list.some(c => c.roomCode.toLowerCase() === roomCode.toLowerCase());
+}
+
+function updateBookmarkButtonUi() {
+  const btn = document.getElementById("btn-bookmark-room");
+  const label = document.getElementById("bookmark-label");
+  const icon = document.getElementById("bookmark-icon");
+  if (!btn || !label) return;
+
+  const saved = isChannelSaved(state.roomCode);
+  if (saved) {
+    btn.classList.add("active");
+    label.textContent = "Saved ⭐";
+    btn.title = "Channel is saved to this browser (Click to unsave)";
+    if (icon) icon.innerHTML = '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="currentColor"></path>';
+  } else {
+    btn.classList.remove("active");
+    label.textContent = "Save Channel";
+    btn.title = "Save Channel & Chat to Device Storage";
+    if (icon) icon.innerHTML = '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>';
+  }
+}
+
+function toggleSaveCurrentChannel() {
+  if (!state.roomCode) return;
+  if (isChannelSaved(state.roomCode)) {
+    removeSavedChannel(state.roomCode);
+    updateBookmarkButtonUi();
+    showToast(`Channel '${state.roomCode}' removed from Saved Channels`, "info");
+  } else {
+    saveCurrentChannel();
+    updateBookmarkButtonUi();
+    showToast(`⭐ Channel '${state.roomCode}' saved! Access anytime from Saved Channels.`, "success");
+  }
+}
+
+function saveCurrentChannel() {
+  if (!state.roomCode) return;
+  try {
+    let list = getSavedChannels();
+    list = list.filter(c => c.roomCode.toLowerCase() !== state.roomCode.toLowerCase());
+
+    const meta = {
+      roomCode: state.roomCode,
+      pin: state.pin || "",
+      nickname: state.nickname || "",
+      savedAt: Date.now(),
+      lastActive: Date.now(),
+      messageCount: state.messages.length
+    };
+    list.unshift(meta);
+    localStorage.setItem("beam_saved_channels_meta", JSON.stringify(list));
+
+    const serializable = state.messages.map(m => {
+      const item = {
+        id: m.id,
+        senderId: m.senderId,
+        senderNick: m.senderNick,
+        isOutgoing: m.isOutgoing,
+        type: m.type,
+        timestamp: m.timestamp,
+        text: m.text,
+        fileName: m.fileName,
+        fileSize: m.fileSize,
+        audioDurationMs: m.audioDurationMs,
+        audioMime: m.audioMime,
+        status: m.status || "SENT"
+      };
+      const bytes = m.imageBytes || m.audioBytes || m.videoBytes || m.fileBytes;
+      if (bytes && bytes.byteLength > 0 && bytes.byteLength < 3 * 1024 * 1024) {
+        try { item.mediaBase64 = uint8ToBase64(bytes); } catch (e) {}
+      }
+      return item;
+    });
+
+    localStorage.setItem("beam_saved_msgs_" + state.roomCode.toLowerCase(), JSON.stringify(serializable));
+    initSavedChannelsUi();
+  } catch (err) {
+    console.warn("Failed to save channel", err);
+    showToast("Storage quota exceeded or error saving", "error");
+  }
+}
+
+function updateSavedChannelIfActive() {
+  if (!state.roomCode || !isChannelSaved(state.roomCode)) return;
+  saveCurrentChannel();
+}
+
+function removeSavedChannel(roomCode) {
+  if (!roomCode) return;
+  try {
+    let list = getSavedChannels();
+    list = list.filter(c => c.roomCode.toLowerCase() !== roomCode.toLowerCase());
+    localStorage.setItem("beam_saved_channels_meta", JSON.stringify(list));
+    localStorage.removeItem("beam_saved_msgs_" + roomCode.toLowerCase());
+    initSavedChannelsUi();
+  } catch (err) {
+    console.error("Failed to remove saved channel", err);
+  }
+}
+
+function openSavedChannel(roomCode) {
+  const list = getSavedChannels();
+  const found = list.find(c => c.roomCode.toLowerCase() === roomCode.toLowerCase());
+  if (!found) return;
+
+  const roomInput = document.getElementById("room-input");
+  const pinInput = document.getElementById("pin-input");
+  const nickInput = document.getElementById("nick-input");
+
+  if (roomInput) roomInput.value = found.roomCode;
+  if (pinInput) pinInput.value = found.pin || "";
+  if (nickInput) nickInput.value = found.nickname || "";
+
+  const form = document.getElementById("entry-form");
+  if (form) {
+    form.dispatchEvent(new Event("submit"));
+  }
+}
+
+function restoreSavedChannelMessages(roomCode) {
+  try {
+    const raw = localStorage.getItem("beam_saved_msgs_" + roomCode.toLowerCase());
+    if (!raw) return false;
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list) || list.length === 0) return false;
+
+    const container = document.getElementById("messages-container");
+    if (container) container.innerHTML = "";
+    state.messages = [];
+
+    list.forEach(m => {
+      const bytes = m.mediaBase64 ? base64ToUint8(m.mediaBase64) : null;
+      const restored = {
+        id: m.id,
+        senderId: m.senderId,
+        senderNick: m.senderNick,
+        isOutgoing: m.isOutgoing,
+        type: m.type,
+        timestamp: m.timestamp,
+        text: m.text,
+        fileName: m.fileName,
+        fileSize: m.fileSize,
+        audioDurationMs: m.audioDurationMs,
+        audioMime: m.audioMime,
+        status: m.status || "SENT",
+        imageBytes: m.type === "IMAGE" ? bytes : null,
+        audioBytes: m.type === "VOICE" ? bytes : null,
+        videoBytes: m.type === "VIDEO" ? bytes : null,
+        fileBytes: m.type === "FILE" ? bytes : null
+      };
+      state.messages.push(restored);
+      renderMessageToDom(restored);
+    });
+
+    scrollToBottom();
+    addSystemMessage(`Restored saved history for [${roomCode}]. Channel is bookmarked.`);
+    return true;
+  } catch (e) {
+    console.warn("Failed to restore saved channel messages", e);
+    return false;
+  }
+}
+
+function initSavedChannelsUi() {
+  const card = document.getElementById("saved-channels-card");
+  const listEl = document.getElementById("saved-channels-list");
+  const badge = document.getElementById("saved-channels-badge");
+  if (!card || !listEl) return;
+
+  const list = getSavedChannels();
+  if (list.length === 0) {
+    card.style.display = "none";
+    return;
+  }
+
+  card.style.display = "block";
+  if (badge) badge.textContent = list.length;
+
+  listEl.innerHTML = "";
+  list.forEach(c => {
+    const item = document.createElement("div");
+    item.className = "saved-channel-item";
+    const dateFormatted = new Date(c.lastActive || c.savedAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    item.innerHTML = `
+      <div class="saved-channel-info" onclick="openSavedChannel('${escapeHtml(c.roomCode)}')">
+        <div class="saved-channel-name">
+          <span>🔒 ${escapeHtml(c.roomCode)}</span>
+          ${c.pin ? '<span style="font-size: 11px; color: var(--accent-cyan);" title="PIN Protected">🔑</span>' : ''}
+        </div>
+        <div class="saved-channel-meta">
+          <span>${c.messageCount || 0} messages • ${dateFormatted}</span>
+        </div>
+      </div>
+      <div class="saved-channel-actions">
+        <button class="btn-open-channel" onclick="openSavedChannel('${escapeHtml(c.roomCode)}')">Open</button>
+        <button class="btn-del-channel" title="Delete from saved channels" onclick="event.stopPropagation(); if(confirm('Delete saved channel [${escapeHtml(c.roomCode)}] and its history from this device?')) removeSavedChannel('${escapeHtml(c.roomCode)}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </div>
+    `;
+    listEl.appendChild(item);
+  });
+}
+
+// ============================================================================
+// DELETE MESSAGE FOR ME (Local Only)
+// ============================================================================
+
+function deleteMessageForMe(msgId) {
+  if (!confirm("Delete this message for you on this device? (Other peers will still have it)")) {
+    return;
+  }
+  const idx = state.messages.findIndex(m => m.id === msgId);
+  if (idx !== -1) {
+    state.messages.splice(idx, 1);
+  }
+  const rowEl = document.getElementById(`msg-row-${msgId}`);
+  if (rowEl) {
+    rowEl.style.transition = "opacity 0.2s ease, transform 0.2s ease";
+    rowEl.style.opacity = "0";
+    rowEl.style.transform = "scale(0.95)";
+    setTimeout(() => {
+      if (rowEl.parentNode) rowEl.parentNode.removeChild(rowEl);
+    }, 200);
+  }
+  persistCurrentSession();
+  updateSavedChannelIfActive();
+  showToast("Message deleted for you", "info");
 }
 
 function scrollToBottom() {
@@ -1789,7 +2046,12 @@ async function confirmExportChat() {
 // ============================================================================
 
 function leaveRoom() {
-  if (confirm("Leave room and wipe memory? All live messages will be permanently destroyed.")) {
+  const isSaved = isChannelSaved(state.roomCode);
+  const promptText = isSaved
+    ? "Leave room? Your saved channel history is securely stored on this device."
+    : "Leave room and wipe memory? All unexported messages will be permanently destroyed.";
+
+  if (confirm(promptText)) {
     if (state.client) {
       try {
         state.client.end(true);
@@ -1801,13 +2063,15 @@ function leaveRoom() {
       state.activeAudio = null;
     }
 
-    // Wipe sessionStorage completely
-    try {
-      sessionStorage.removeItem("beam_session_room");
-      sessionStorage.removeItem("beam_session_pin");
-      sessionStorage.removeItem("beam_session_nick");
-      sessionStorage.removeItem("beam_session_messages_" + state.roomCode);
-    } catch (e) {}
+    // Wipe sessionStorage completely if not saved
+    if (!isSaved) {
+      try {
+        sessionStorage.removeItem("beam_session_room");
+        sessionStorage.removeItem("beam_session_pin");
+        sessionStorage.removeItem("beam_session_nick");
+        sessionStorage.removeItem("beam_session_messages_" + state.roomCode);
+      } catch (e) {}
+    }
 
     // Reset address bar URL back to clean path without hash
     try {
@@ -1842,7 +2106,8 @@ function leaveRoom() {
       `;
     }
 
-    showToast("Memory wiped completely", "success");
+    initSavedChannelsUi();
+    showToast(isSaved ? "Exited room (History saved in Saved Channels)" : "Memory wiped completely", "success");
   }
 }
 
